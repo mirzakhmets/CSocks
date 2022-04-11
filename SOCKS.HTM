@@ -1,0 +1,277 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<title>SOCKS-</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<p><strong>SOCKS-firewall realization on object-oriented basis</strong></p>
+
+<p>&nbsp;</p>
+
+<p><strong>1. Introduction</strong></p>
+
+<p>The SOCKS-firewall is a program which is capable of secured
+proxying being compatible with various authentcation levels.
+However, as described in RFC 1928, there is currently only basic.
+In this conspect we will try to compose the SOCKS model for
+proper implementation of firewall architecture design for both
+current standard and further developing.</p>
+
+<p>&nbsp;</p>
+
+<p><strong>2. Development</strong></p>
+
+<p>On figure 1, there is shown the hierarchy of SOCKS
+implementation. As can bee seen, the `CSocks4` and `CSocks5`
+inherit common connection-accept routines. The difference is how
+each type of firewall is proxying the incoming client request by
+virtual method `CSocks::ForceConnection(u_int sock)`. To create
+multi-threaded applications using this class and maybe trace
+connections, the `pNotifyProc` is defined which is a pointer to
+the pocedure of type:</p>
+
+<p>u_int PSOCKSNOTIFYPROC(u_int sock). After connection has come
+the call traps to this procedure.</p>
+
+<p>.<img src="figure1.gif" width="469" height="292"></p>
+
+<p>After client request succeeded, the SOCKS-firewall changes its
+state to negotiation level using `CSocks::SocksTCPTunneling` for
+TCP mode or `CSocks::SocksUDPTunneling` for UDP-bound mode.</p>
+
+<p>&nbsp;</p>
+
+<p><strong>3. Further improvement of SOCKS standard</strong></p>
+
+<p>For this time, SOCKS-firewall can be compatible only with
+basic authentication level. However, it's possible to introduce
+additional SASL layer(s) (for instance, OpenSSL).</p>
+
+<p>&nbsp;</p>
+
+<p><strong>4. Creating multi-threaded SOCKS-firewall</strong></p>
+
+<p>In demo below we will create multi-threaded SOCKS-server using
+trace map by programming notification procedure map. This demo is
+working on Linux/SCO/NetBSD and of course Win32.</p>
+
+<p>&nbsp;</p>
+
+<pre>
+/*
+ *	Copyright 2003 (c) Alumni&lt;alumni@ok.kz&gt;,  A basic multi-threaded SOCKS firewall
+ *	Platforms: Win32, NetBSD
+ *	To compile on NetBSD: set `#define _NETBSD_SOCKS`
+ */
+
+
+#include &quot;common.h&quot;
+#include &quot;csocks4.h&quot;
+#include &quot;csocks5.h&quot;
+
+#undef USE_SOCKS4
+#undef USE_SOCKS5
+#undef _SOCKS_MULTIHTREADED
+
+
+#define USE_SOCKS5
+#define _SOCKS_MULTITHREADED
+#define MAX_THREAD_COUNT	17
+
+#ifdef USE_SOCKS4
+#define CSocksType	CSocks4
+#else
+#define CSocksType	CSocks5
+#endif
+
+
+#ifndef _SOCKS_MULTITHREADED
+CSocksType* socks;
+
+#elif defined(_WIN32_SOCKS) &amp;&amp; defined(_SOCKS_MULTITHREADED)
+CRITICAL_SECTION cs;
+static u_int uTotalThreads;
+static u_long uThreads[MAX_THREAD_COUNT];
+static CSocksType* socks[MAX_THREAD_COUNT];
+
+u_int GetFreeIndex();
+u_int SocksSerialize();
+u_long WINAPI SocksThread(LPVOID pParam);
+bool DeleteThread(CSocksType* pSock);
+u_int __stdcall NotifyProc(u_int sock);
+
+
+
+u_int GetFreeIndex()
+{
+	for(u_int i=0;i&lt;MAX_THREAD_COUNT;i++) if(socks[i]==NULL) return(i);
+	return(-1);
+}
+
+
+u_int SocksSerialize()
+{
+	u_int i = GetFreeIndex();
+
+	if(uTotalThreads&gt;=MAX_THREAD_COUNT || i==-1) return(-1);
+	try {
+		socks[i] = new CSocksType();
+		uTotalThreads++;
+		socks[i]-&gt;pNotifyProc = socks[0]-&gt;pNotifyProc;
+	}
+	catch(...) {
+		perror(&quot;Error during SOCKS serialization\n&quot;);
+		return(-1);
+	};
+
+	return(i);
+}
+
+
+bool DeleteThread(CSocksType* pSock)
+{
+	u_int i;
+	try {
+		for(i=0;i&lt;MAX_THREAD_COUNT;i++)
+			if(socks[i]==pSock)
+			{
+				delete socks[i];
+				socks[i] = NULL;
+				return(true);
+			}
+	}
+	catch(...) { return(false); };
+	return(false);
+}
+
+
+
+u_long WINAPI SocksThread(LPVOID pParam)
+{
+	CSocksType* pSocks = (CSocksType*)pParam;
+
+	try {
+		pSocks-&gt;ForceConnection(pSocks-&gt;uAccept);
+		closesock(pSocks-&gt;uAccept);
+		if(pSocks-&gt;LastError!=SOCKS_ERROR_NONE) fprintf(stdout,&quot;Error: %s\n&quot;,pSocks-&gt;GetLastError());
+		EnterCriticalSection(&amp;cs);
+		DeleteThread(pSocks);
+		LeaveCriticalSection(&amp;cs);
+	}
+	catch(...) {
+		perror(&quot;SocksThread caused exception\n&quot;);
+	};
+
+	EnterCriticalSection(&amp;cs);
+	uTotalThreads--;
+	LeaveCriticalSection(&amp;cs);
+	return(1);
+}
+
+
+u_int __stdcall NotifyProc(u_int sock)
+{
+	register u_int i;
+	HANDLE hThread;
+
+	EnterCriticalSection(&amp;cs);
+	try {
+		if((i = SocksSerialize())!=-1)
+		{
+			socks[i]-&gt;uAccept = sock;
+			hThread = CreateThread(NULL,NULL,(LPTHREAD_START_ROUTINE)SocksThread,
+								   socks[i],CREATE_SUSPENDED,&amp;uThreads[i]);
+			if(hThread==NULL)
+			{
+				uTotalThreads--;
+				delete socks[i];
+				socks[i] = NULL;
+			}
+		}
+		else closesock(sock);
+	}
+	catch(...)
+	{
+		perror(&quot;NotifyProc caused exception\n&quot;); 
+		closesock(sock);
+	};
+	LeaveCriticalSection(&amp;cs);
+	if(hThread) ResumeThread(hThread);
+	return(1);
+}
+#elif defined(_NETBSD_SOCKS) &amp;&amp; defined(_SOCKS_MULTITHREADED)
+CSocksType socks;
+u_int __stdcall NotifyProc(u_int sock);
+
+u_int __stdcall NotifyProc(u_int sock)
+{
+	if(sock) socks.ForceConnection(sock);
+	if(fork()==-1) exit(0);
+	socks.PrepareListening();
+	socks.StartChaining();
+	exit(0);
+	return(1);
+}
+
+#endif
+
+
+int main(int argc, char** argv)
+{
+#ifdef _WIN32_SOCKS
+	WSAData wsadata;
+	if(WSAStartup(0x002,&amp;wsadata)) exit(1);
+#ifdef _SOCKS_MULTITHREADED
+	InitializeCriticalSection(&amp;cs);
+	for(u_int i=0;i&lt;MAX_THREAD_COUNT;i++) socks[i] = NULL;
+	uTotalThreads = 0;
+#endif	//_SOCKS_MULTITHREADED
+#endif	//_WIN32_SOCKS
+
+
+#ifndef _SOCKS_MULTITHREADED
+	socks = new CSocksType();
+	if(!socks-&gt;PrepareListening()) exit(1);
+	for(;;)
+	{
+		try {
+			socks-&gt;LastError = SOCKS_ERROR_NONE;
+			socks-&gt;StartChaining();
+			if(socks-&gt;LastError!=SOCKS_ERROR_NONE)	fprintf(stdout,&quot;Error: %s\n&quot;,socks-&gt;GetLastError());
+			fprintf(stdout,&quot;\n&quot;);
+		}
+		catch(...)
+		{ 
+			perror(&quot;Undefined exception handled: exitting abnormally\n&quot;);
+			exit(1);
+		};
+	}
+#elif defined(_WIN32_SOCKS)
+	uTotalThreads = 1;
+	socks[0] = new CSocksType();
+	if(!socks[0]-&gt;PrepareListening()) exit(1);
+	socks[0]-&gt;pNotifyProc = (PSOCKSNOTIFYPROC)NotifyProc;
+	for(;;) socks[0]-&gt;StartChaining();
+#elif defined(_NETBSD_SOCKS)
+	try {
+		socks.pNotifyProc = (PSOCKSNOTIFYPROC)NotifyProc;
+		NotifyProc(0);
+	}
+	catch(...)
+	{
+		perror(&quot;Undefined exception handled: exitting abnormally\n&quot;);
+		exit(1);
+	}
+#endif
+
+	return(0);
+}
+
+</pre>
+</body>
+</html>
