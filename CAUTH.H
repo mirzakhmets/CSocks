@@ -10,7 +10,7 @@
 #ifndef __CAUTH_MOD_HEADER
 #define __CAUTH_MOD_HEADER
 
-#define AUTH_MAX_ENTRIES 1000
+#define AUTH_MAX_ENTRIES 10000
 
 
 class CSocksAuth {
