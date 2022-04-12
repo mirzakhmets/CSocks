@@ -138,7 +138,7 @@ bool CSocks::SocksTCPTunneling(u_int sres, u_int sdest)
 		FD_SET(sdest,&fd);
 
 		
-		if((ret = select(2,&fd,NULL,NULL,&tv))>0 && VALID_SOCKET(ret))
+		if((ret = select(0,&fd,NULL,NULL,&tv))>0 && VALID_SOCKET(ret))
 		{
 			if(FD_ISSET(sres,&fd))
 			{
@@ -152,6 +152,9 @@ bool CSocks::SocksTCPTunneling(u_int sres, u_int sdest)
 			}
 
 			uread = recv(sockr,szBuffer,1023,0);
+			
+			if (uread >= 1023) break;
+			
 			szBuffer[uread] = 0;
 			uwrote = 0;
 			if(!VALID_SOCKET(uread) || uread==0) break;
@@ -167,7 +170,7 @@ bool CSocks::SocksTCPTunneling(u_int sres, u_int sdest)
 		FD_ZERO(&fd);
 		FD_SET(sres,&fd);
 		FD_SET(sdest,&fd);
-		if(select(2,NULL,NULL,&fd,&tv)>0) break;
+		if(select(0,NULL,NULL,&fd,&tv)>0) break;
 	} while(1);
 	
 __quit:
@@ -216,7 +219,7 @@ bool CSocks::SocksUDPTunneling(void* sares, char* sData, u_int len)
 	{
 		FD_ZERO(&fd);
 		FD_SET(sres,&fd);
-		select(1,&fd,NULL,NULL,&tv);
+		select(0,&fd,NULL,NULL,&tv);
 		pos = recvfrom(sdest,szBuffer,1023,0,NULL,NULL);
 		sendto(sres,szBuffer,pos,0,(struct sockaddr*)sares,sizeof(struct sockaddr));
 	} while(pos>0 && VALID_SOCKET(pos));

@@ -9,17 +9,16 @@
 class CSocks5:public virtual CSocks{
 private:
 public:
-	CSocksBasicAuth* basicauth;
 
 	CSocks5() {
-		basicauth = new CSocksBasicAuth();
+		//basicauth = new CSocksBasicAuth();
 	};
 
 	~CSocks5() {
-		try {
-			if(basicauth) delete basicauth;
-		}
-		catch(...) {};
+		//try {
+			//if(basicauth) delete basicauth;
+		//}
+		//catch(...) {};
 	};
 
 	bool ForceConnection(u_int sock);

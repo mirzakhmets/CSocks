@@ -64,8 +64,8 @@ bool CSocksBasicAuth::AddEntry(char* pLogin, char* pPass)
 	try {
 		lenLogin = strlen(pLogin);
 		lenPass = strlen(pPass);
-		pLogins = (char*)realloc(pLogins,uLoginsLen+lenLogin);
-		pPasswords = (char*)realloc(pPasswords,uPassLen+lenPass);
+		pLogins = (char*)realloc(pLogins,uLoginsLen+lenLogin + 1);
+		pPasswords = (char*)realloc(pPasswords,uPassLen+lenPass + 1);
 		
 		memcpy(pLogins+uLoginsLen,pLogin,lenLogin);
 		memcpy(pPasswords+uPassLen,pPass,lenPass);
@@ -94,12 +94,10 @@ u_int CSocksBasicAuth::SeekEntry(char* pLogin, char* pPass)
 		uPass = strlen(pPass);
 		for(i=0;i<uEntries;i++)
 		{
-			if (strncmp(pLogin,pKey,uLogin)==0 &&
-				strncmp(pPass,pValue,uPass)==0 &&
-				uLogin==strlen(pKey) && uPass==strlen(pValue)) return(i);
+			if (strcmp(pLogin,pKey)==0 &&
+				strcmp(pPass,pValue)==0) return(i);
 			pKey += strlen(pKey)+1;
 			pValue += strlen(pValue)+1;
-
 		}
 
 	}

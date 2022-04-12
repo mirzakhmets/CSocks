@@ -28,7 +28,7 @@ bool CSocks4::ForceConnection(u_int sock)
 
 	if(mode==SOCKS_MODE_TCP)
 	{
-		if(select(1,&fd,NULL,NULL,&tv)>0 && FD_ISSET(sock,&fd))
+		if(select(0,&fd,NULL,NULL,&tv)>0 && FD_ISSET(sock,&fd))
 		{
 			ret = recv(sock,(char*)&req,sizeof(req),0);
 			if(ret==sizeof(req) && req.uVersion==4 && req.uCommand==1)

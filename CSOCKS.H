@@ -2,7 +2,7 @@
 #define __CSOCKS_HEADER
 
 #include "common.h"
-
+#include "cauth.h"
 
 class CSocks {
 private:
@@ -12,6 +12,7 @@ public:
 	u_short uPort, mode;
 	u_int uAccept;
 	u_long LastError;
+	CSocksBasicAuth* basicauth = NULL;
 
 	CSocks() {
 		uAccept = 0;

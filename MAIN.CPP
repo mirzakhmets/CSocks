@@ -17,7 +17,6 @@
 #undef AUTH
 
 #define AUTH
-
 #define _WIN32_SOCKS
 #define USE_SOCKS5
 #define _SOCKS_MULTITHREADED
@@ -64,10 +63,7 @@ u_int SocksSerialize()
 		socks[i] = new CSocksType();
 		uTotalThreads++;
 		socks[i]->pNotifyProc = socks[0]->pNotifyProc;
-		
-#if defined(USE_SOCKS5) && defined(AUTH)
 		socks[i]->basicauth = auth;
-#endif
 	}
 	catch(...) {
 		perror("Error during SOCKS serialization\n");
@@ -177,7 +173,7 @@ int main(int argc, char** argv)
 		fgets(sLine, sizeof(sLine), fp);
 		
 		for (char *p = (char*) sLine; *p; ++p) {
-			if (isspace(*p)) {
+			if (isspace(*p) || *p == '\r' || *p == '\n') {
 				*p = '\0';
 			}
 		}
@@ -188,13 +184,14 @@ int main(int argc, char** argv)
 		
 		for (; *sPass; sPass++);
 		
-		sPass++;
+		for (; !*sPass; sPass++);
 		
 		auth->AddEntry(sLogin, sPass);
 	}
 	
 	fclose (fp);
 	
+	auth->bAuthenticate = false;
 #endif
 
 #ifdef _WIN32_SOCKS
@@ -229,6 +226,7 @@ int main(int argc, char** argv)
 	socks[0] = new CSocksType();
 	if(!socks[0]->PrepareListening()) exit(1);
 	socks[0]->pNotifyProc = (PSOCKSNOTIFYPROC)NotifyProc;
+	socks[0]->basicauth = auth;
 	for(;;) socks[0]->StartChaining();
 #elif defined(_NETBSD_SOCKS)
 	try {
@@ -242,7 +240,7 @@ int main(int argc, char** argv)
 	}
 #endif
 
-
+	WSACleanup();
 
 	return(0);
 }
