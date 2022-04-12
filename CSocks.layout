@@ -9,7 +9,7 @@ Focused=9
 [Editor_1]
 CursorCol=1
 CursorRow=52
-TopLine=36
+TopLine=24
 LeftChar=1
 [Editor_2]
 CursorCol=33
@@ -19,7 +19,7 @@ LeftChar=1
 [Editor_3]
 CursorCol=1
 CursorRow=161
-TopLine=132
+TopLine=96
 LeftChar=1
 [Editor_4]
 CursorCol=1
@@ -39,12 +39,12 @@ LeftChar=1
 [Editor_8]
 CursorCol=8
 CursorRow=11
-TopLine=4
+TopLine=3
 LeftChar=1
 [Editor_9]
-CursorCol=19
-CursorRow=21
-TopLine=3
+CursorCol=29
+CursorRow=194
+TopLine=178
 LeftChar=1
 [Editor_7]
 CursorCol=1
