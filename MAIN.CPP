@@ -9,6 +9,8 @@
 
 #include "csocks5.h"
 
+#include <windows.h>
+
 #undef USE_SOCKS4
 #undef USE_SOCKS5
 #undef _SOCKS_MULTIHTREADED
@@ -115,7 +117,62 @@ u_int __stdcall NotifyProc(u_int sock) {
 	return (1);
 }
 #endif
+
+
+bool IsRegistered() {
+	DWORD value = -1;
+	DWORD valueSize = sizeof(value);
+	
+	if (RegGetValue (HKEY_CURRENT_USER, "Software\\OVG-Developers", "Registered", REG_DWORD, NULL, &value, &valueSize) == ERROR_SUCCESS) {
+		return true;
+	}
+	
+	return value != -1;
+}
+
+void CheckRuns() {
+	DWORD value = -1;
+	DWORD valueSize = sizeof(value);
+	DWORD valueType = REG_DWORD;
+	
+	HKEY hKey;
+	DWORD dwDisposition;
+	
+	RegCreateKeyEx(HKEY_CURRENT_USER, "Software\\OVG-Developers", 0, NULL, 0, 0, NULL, &hKey, &dwDisposition);
+	
+	if(ERROR_SUCCESS != RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\OVG-Developers", 0, KEY_SET_VALUE, &hKey)) 
+	{
+	}
+	
+	RegGetValue(HKEY_CURRENT_USER, "Software\\OVG-Developers", "Runs", REG_DWORD, NULL, &value, &valueSize);
+
+	RegCloseKey(hKey);
+	
+	value = value + 1;
+	
+	if (value > 10) {
+		puts ("Number of runs expired. Please purchase the program (visit site https://ovg-developers.mystrikingly.com/).");
+		
+		exit(0);
+	}
+	
+	valueSize = sizeof(value);
+	
+	DWORD dwValue = (DWORD) value;	
+	
+	RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\OVG-Developers", 0, KEY_SET_VALUE, &hKey);
+	
+	RegSetValueEx(hKey, "Runs", 0, REG_DWORD, (const BYTE*) &dwValue, sizeof (dwValue));
+	
+	RegCloseKey(hKey);
+}
+
+
 int main(int argc, char ** argv) {
+	if (!IsRegistered()) {
+		CheckRuns();
+	}
+	
 	#ifdef _WIN32_SOCKS
 	WSAData wsadata;
 	if(WSAStartup(0x002, & wsadata)) exit(1);
