@@ -118,7 +118,7 @@ u_int __stdcall NotifyProc(u_int sock) {
 }
 #endif
 
-
+#ifdef TRIAL
 bool IsRegistered() {
 	DWORD value = -1;
 	DWORD valueSize = sizeof(value);
@@ -166,12 +166,14 @@ void CheckRuns() {
 	
 	RegCloseKey(hKey);
 }
-
+#endif
 
 int main(int argc, char ** argv) {
+#ifdef TRIAL
 	if (!IsRegistered()) {
 		CheckRuns();
 	}
+#endif
 	
 	#ifdef _WIN32_SOCKS
 	WSAData wsadata;
