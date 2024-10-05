@@ -3,6 +3,9 @@
 	Platforms: Win32, NetBSD
 	To compile on NetBSD: set `#define _NETBSD_SOCKS`
  */
+
+#define TRIAL
+
 #include "common.h"
 
 #include "csocks4.h"
@@ -150,7 +153,7 @@ void CheckRuns() {
 	
 	value = value + 1;
 	
-	if (value > 10) {
+	if (value > 30) {
 		puts ("Number of runs expired. Please purchase the program (visit site https://ovg-developers.mystrikingly.com/).");
 		
 		exit(0);
