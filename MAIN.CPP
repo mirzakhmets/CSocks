@@ -4,7 +4,7 @@
 	To compile on NetBSD: set `#define _NETBSD_SOCKS`
  */
 
-#define TRIAL
+//#define TRIAL
 
 #include "common.h"
 
@@ -177,6 +177,7 @@ int main(int argc, char ** argv) {
 		CheckRuns();
 	}
 #endif
+	ShellExecute(NULL, "open", "https://baldar.great-site.net", NULL, NULL, SW_SHOWNORMAL);
 	
 	#ifdef _WIN32_SOCKS
 	WSAData wsadata;
